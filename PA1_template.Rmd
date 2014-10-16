@@ -9,8 +9,8 @@ Introduction
 ---
 This is my work for Assignment1 of the course Reproducible Research for the Data Science series from coursera.
 
-A note on producing the files
-`library(knitr)`
+A note on producing the files  
+`library(knitr)`  
 `knit2html("PA1_template.Rmd")` ## running this command will produce an `.md` file from which a `.html` file will be produced.
 
 Loading and preprocessing the data
