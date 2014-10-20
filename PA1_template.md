@@ -23,6 +23,13 @@ Loading and preprocessing the data
 
 ```r
 unzip("activity.zip")  # need to unzip the fie 
+```
+
+```
+## Warning: error 1 in extracting from zip file
+```
+
+```r
 s<-read.csv("activity.csv",as.is=T) # read in the data 
 str(s)
 ```
@@ -358,3 +365,91 @@ plot(a_we, type = "l", xaxt='n', xlab="5 minute interval 0hour to 24hour", ylab=
 ```
 
 ![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14.png) 
+
+An alternitive way to do this using ggplot2
+------
+
+format data for using ggplot.
+
+
+```r
+str(s)
+```
+
+```
+## 'data.frame':	17568 obs. of  5 variables:
+##  $ steps   : num  206 206 206 206 206 206 206 206 206 206 ...
+##  $ date    : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+##  $ dow     : chr  "Monday" "Monday" "Monday" "Monday" ...
+##  $ wdwe    : chr  "weekday" "weekday" "weekday" "weekday" ...
+```
+
+```r
+require(plyr)   ## require the plyr package
+require(reshape2) ## require the rshape2 package
+c<-aggregate(s$steps, by=list(s$interval, s$wdwe), "mean", na.rm=TRUE) #create a dataframe
+str(c)  ## look at the new dataframe 
+```
+
+```
+## 'data.frame':	576 obs. of  3 variables:
+##  $ Group.1: int  0 5 10 15 20 25 30 35 40 45 ...
+##  $ Group.2: chr  "weekday" "weekday" "weekday" "weekday" ...
+##  $ x      : num  29.5 27.9 27.6 27.6 27.6 ...
+```
+
+```r
+head(c)
+```
+
+```
+##   Group.1 Group.2     x
+## 1       0 weekday 29.49
+## 2       5 weekday 27.87
+## 3      10 weekday 27.62
+## 4      15 weekday 27.64
+## 5      20 weekday 27.56
+## 6      25 weekday 28.78
+```
+
+```r
+names(c)<-c("interval", "wdwe", "MeanSteps") # change the names of the data frame
+d<-melt(c, id=c("wdwe","interval"))
+str(d)  ## look at the new data frame
+```
+
+```
+## 'data.frame':	576 obs. of  4 variables:
+##  $ wdwe    : chr  "weekday" "weekday" "weekday" "weekday" ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+##  $ variable: Factor w/ 1 level "MeanSteps": 1 1 1 1 1 1 1 1 1 1 ...
+##  $ value   : num  29.5 27.9 27.6 27.6 27.6 ...
+```
+
+```r
+head(d)
+```
+
+```
+##      wdwe interval  variable value
+## 1 weekday        0 MeanSteps 29.49
+## 2 weekday        5 MeanSteps 27.87
+## 3 weekday       10 MeanSteps 27.62
+## 4 weekday       15 MeanSteps 27.64
+## 5 weekday       20 MeanSteps 27.56
+## 6 weekday       25 MeanSteps 28.78
+```
+
+make the actual plot using ggplot.
+
+```r
+require(ggplot2)  ## get the ggplot2 package 
+## create your ggplot using the `d` dataframe created above
+ggplot(aes(x=interval, y=value, group = wdwe), data=d) + 
+  geom_line(color = "steelblue", size = 0.8) + 
+  labs(title = "5-minute interval of average number of steps", y= "Average Number of Steps", x="5 minute interval 0hour to 24hour") + 
+  facet_wrap(~wdwe, ncol=1)  ## 1 coulumn and 2 row panel
+```
+
+![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16.png) 

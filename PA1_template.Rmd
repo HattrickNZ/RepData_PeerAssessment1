@@ -160,3 +160,31 @@ plot(a_wd, type = "l", xaxt='n', xlab="5 minute interval 0hour to 24hour", ylab=
 plot(a_we, type = "l", xaxt='n', xlab="5 minute interval 0hour to 24hour", ylab="Average Number of Steps", main="Weekend - 5-minute interval of average number of steps") 
 
 ```
+
+An alternitive way to do this using ggplot2
+------
+
+format data for using ggplot.
+
+```{r}
+str(s)
+require(plyr)   ## require the plyr package
+require(reshape2) ## require the rshape2 package
+c<-aggregate(s$steps, by=list(s$interval, s$wdwe), "mean", na.rm=TRUE) #create a dataframe
+str(c)  ## look at the new dataframe 
+head(c)
+names(c)<-c("interval", "wdwe", "MeanSteps") # change the names of the data frame
+d<-melt(c, id=c("wdwe","interval"))
+str(d)  ## look at the new data frame
+head(d)
+```
+
+make the actual plot using ggplot.
+```{r}
+require(ggplot2)  ## get the ggplot2 package 
+## create your ggplot using the `d` dataframe created above
+ggplot(aes(x=interval, y=value, group = wdwe), data=d) + 
+  geom_line(color = "steelblue", size = 0.8) + 
+  labs(title = "5-minute interval of average number of steps", y= "Average Number of Steps", x="5 minute interval 0hour to 24hour") + 
+  facet_wrap(~wdwe, ncol=1)  ## 1 coulumn and 2 row panel
+```
