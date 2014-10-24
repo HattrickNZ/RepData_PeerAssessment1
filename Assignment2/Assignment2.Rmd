@@ -1,0 +1,254 @@
+---
+title: "Assignment2"
+author: "KS"
+date: "Wednesday, October 22, 2014"
+output: html_document
+---
+
+Title: Storms and other severe weather events can cause both public health and economic  problems.
+---
+
+Synopsis
+---
+This is for assignment 2 of the Reproducible Research part of the Data Science course on coursera.org. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern. In this project we  explore the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. Based on this analysis we try to answer some basic questions about severe weather conditions.
+
+Data Processing
+---
+
+
+```{r,loadlibrary}
+##load the necessary librarys 
+library(downloader) # cross platform downloader 
+library(R.utils)  # bunzip2
+```
+
+
+```{r,}
+dir() # a look at curreent directory
+```
+
+Declare url and filenames 
+```{r}
+URL<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+bz2.filename<-"repdata_data_StormData.csv.bz2"
+csv.filename<-"repdata_data_StormData.csv"
+```
+
+Download the zip file and unzip it
+```{r}
+##if the zip file does not exist download file
+if(!file.exists(bz2.filename)){
+  download(URL, bz2.filename, mode = "wb") 
+  bunzip2(bz2.filename,remove=F) #unzip the file; Do not remove the zipped file
+} 
+```
+
+
+```{r}
+dir() # a new bz2 file and csv should be present 
+```
+
+Read in the csv file. **Note: I am only interested in 7 columns(8,23,24,25,26,27,28) for the purpose of this assignment.**
+
+```{r}
+# read in the csv file, just the 7 columns for efficiency
+d<-read.csv(csv.filename,as.is=T)[,c(8,23,24,25,26,27,28)] 
+names(d) # look at the header names 
+str(d) # look at the dataframe
+head(d) # look at the head of the data frame 
+```
+
+Now I neet to tidy thje `EVTYPE` column **HOW DO I ADD BOLD**
+
+```{r}
+length(unique(d$EVTYPE)) # the number of unique categories 
+```
+
+###### using result="asis" here
+```{r,results="asis"}
+length(unique(d$EVTYPE)) # the number of unique categories 
+```
+
+What I am going to do is use the funtion `categorise` to tidy this column: 
+```{r}
+## categorise this is a function that
+## accepts a *list* of strings that need sorting into a list of *categories* 
+## In this example list will be the column EVTYPE in question
+## Is this example categories will be a list defined below
+categorise<-function (list,categories){
+  for (i in categories){
+    pattern<-paste(".*",i,".*",sep="")
+    print(paste("Finding this pattern: " ,pattern,", and replacing it with this: ",i,".",sep=""))
+    list<-gsub(pattern,i,list,ignore.case=T)
+  }
+  list  ## return the categorised list
+}
+```
+
+
+```{r}
+## my categories will be define as below
+## the order is important here as I tried to find the most frequent word and tried to put them in this order from most frequent to least frequent e.g. WIND = most frequent, WET = least frequent
+## Obviously this took a number of time and was my first attempt at this but it is something I would like to work on further
+cat<-c("WIND","SNOW","FLOOD","STORM","RAIN","HAIL","SUMMARY","ICE","COLD","HOT","HURRICANE","TORNADO","SURF","DRY","WARM","LIGHTNING","DAM","PRECIPITATION","TEMPERATURE","LAND","FREEZ","FIRE","VOLCANIC","WATER","WINT","CLOUD","SHOWER","HEAT","TIDE","URBAN","STREAM","RECORD","SEA","MARINE","ROAD","WET")
+length(cat) # this is the number of categories I will have after this metod of categorisation
+```
+
+
+```{r}
+sort(cat) # for clarity I have displayed them here in alphabetical order # NOTE: WINT == WINTER          
+```
+
+    **NOTE:** On tidying this columns I would like to have spent more time on tidying this 
+    but due to time constraints I was unable, but it is some thing I would like to revisit
+
+
+```{r}
+d$EVTYPE<-categorise(d$EVTYPE,cat) ## the output below explains what the function is doing 
+```
+
+
+```{r}
+length(unique(d$EVTYPE)) # this shows the number of categories I have now  
+```
+
+There is still alot of categories in this columns `EVTYPE`. So what I have chosen to do in the interest of time is assign all these to `Other`. It is not ideal but it is sufient for this Assignemnt. With more time and a better codebook this whole tidying up process could be greatly improved.
+
+```{r}
+d$EVTYPE[!(d$EVTYPE %in% cat)] <- "Other"
+```
+
+
+```{r}
+length(unique(d$EVTYPE)) # this shows the number of categories I have now 
+sort(unique(d$EVTYPE)) # these are the categories I have now #sorted for clarity
+```
+
+
+```{r}
+head(d) # just looking at the dataframe again
+str(d)
+```
+
+Now I have to tidy the data to answer the ecomomic question
+
+
+```{r}
+pattern1<-unique(d$PROPDMGEXP)
+pattern2<-unique(d$CROPDMGEXP)
+pattern<-unique(append(pattern1,pattern2))
+pattern # these are the unique values that I will want to replace with the values in replacement below
+
+replacement<-c(1, -1, 1, 1, 1, 1, 100, 1000, 10000, 1e+05, 1e+06, 1e+07, 1e+08, 
+  1e+09, 100, 100, 1000, 1000, 1e+06, 1e+06)
+replacement # these are the values that will be mapped to pattern above 
+length(pattern)
+length(replacement)
+
+```
+
+```{r}
+# FindAndReplace function details:
+# list would be a hole column in the dataframe with value that need replacing
+# pattern would be an aray pattern e.g "h"
+# replacement would be array replacement e.g. 10^2
+# pattern and replacement would be of the same length with pattern[1] being replaced by 
+# replacement[1] ...and so on
+
+FindAndReplace<-function (list,pattern,replacement){
+  for (i in 1:length(pattern)){
+    #print(i)
+    print(paste("i:",i," Finding this: " ,pattern[i],", and replacing with this: ",replacement[i],".",sep=""))
+    
+    list[list==pattern[i]] <- replacement[i]
+  }
+  list  ## return the list  with replacements 
+}
+
+```
+
+Tidying up these 2 columns `PROPDMGEXP` and `CROPDMGEXP` now
+```{r}
+d$PROPDMGEXP<-FindAndReplace(d$PROPDMGEXP,pattern,replacement) # output below expains what this function is doing 
+d$CROPDMGEXP<-FindAndReplace(d$CROPDMGEXP,pattern,replacement)  # output below expains what this function is doing
+sort(unique(d$PROPDMGEXP)) # this is the unique values of these columns now
+sort(unique(d$CROPDMGEXP))
+```
+
+now i need to convert some columns from character to numeric
+
+```{r}
+str(d) # just looking at the dataframe again
+```
+
+convert some columns from character to numeric so I can do a multiplcation on that column
+
+```{r}
+d$PROPDMGEXP<-as.numeric(d$PROPDMGEXP) # convert column to numeric 
+d$CROPDMGEXP<-as.numeric(d$CROPDMGEXP)
+sort(unique(d$PROPDMGEXP)) # display unique values  
+sort(unique(d$CROPDMGEXP))
+str(d) # have a look at the data frame to see that the columns have changed to numeric
+```
+
+Create my new columns to get the cost for property, crops and crops and property combined
+
+```{r}
+d$PROP_COST<-d$PROPDMG * d$PROPDMGEXP  # creat new columns
+d$CROP_COST<-d$CROPDMG * d$CROPDMGEXP
+d$PROP_CROP_COST<-d$PROP_COST+d$CROP_COST
+```
+
+```{r}
+head(d) # check to see if the values look right 
+str(d)
+```
+
+
+
+Results
+---
+
+   Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+    Short Answer: Tornado, Head, Flood and Wind for Fatalities (see Fig1) Very similar for
+    Injuries (see Fig2)
+
+```{r}
+
+par(mai=c(2,1,1,1)) ## use this so the x-axis labels are legible
+
+# sort data for plotting 
+Fatalities<-sort(tapply(d$FATALITIES,d$EVTYPE,sum),decreasing=T)
+Injurys<-sort(tapply(d$INJURIES,d$EVTYPE,sum),decreasing=T)
+
+# Plot 1 - Fatalities
+plot(Fatalities,xaxt="n",type="h",col = "red",main="Fig1: Fatalities per weather",xlab="")
+axis(1,at=1:37,labels=names(Fatalities),las=2) 
+# las=2 make x-axis labels vertical
+
+# Plot 2 - Injuries
+plot(Injurys,xaxt="n",type="h",col = "blue",main="Fig2: Injuries per weather",xlab="")
+axis(1,at=1:37,labels=names(Injurys),las=2)
+
+```
+
+   Across the United States, which types of events have the greatest economic consequences?
+   
+    Short Answer: Wind, Tornado, Flood and Hail(see Fig3)
+
+```{r}
+par(mai=c(2,1,1,1)) ## use this so the x-axis labels are legible
+
+# sort data for plotting 
+PROP_CROP_COST<-sort(tapply(d$PROP_CROP_COST,d$EVTYPE,sum),decreasing=T)
+plot(PROP_CROP_COST,xaxt="n",type="h",col = "green",main="Fig3: Property and Crops Cost per weather",xlab="")
+axis(1,at=1:37,labels=names(PROP_CROP_COST),las=2)
+
+```
+
+```{r}
+##########some more grpahs I would like to add 
+
+```
+
